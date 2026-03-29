@@ -1,0 +1,169 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Polished theme with OKLCH-derived tinting for warmth and depth */
+:root {
+  --background: #fafafa;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+  --primary: #059669; /* Emerald 600 */
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #059669;
+  
+  --chart-1: #059669; /* Emerald */
+  --chart-2: #2563eb; /* Blue */
+  --chart-3: #8b5cf6; /* Violet */
+  --chart-4: #f59e0b; /* Amber */
+  --chart-5: #06b6d4; /* Cyan */
+  --radius: 0.75rem;
+  
+  --glass: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(228, 228, 231, 0.6);
+  --glow: rgba(5, 150, 105, 0.08); /* Soft emerald glow */
+  --glow-strong: rgba(5, 150, 105, 0.15);
+}
+
+.dark {
+  /* Warm Emerald-tinted dark grayscale via OKLCH approximation */
+  /* This prevents the "dead" cold #000 feel */
+  --background: oklch(16% 0.015 160);
+  --foreground: oklch(98% 0.005 160);
+  
+  --card: oklch(19% 0.015 160);
+  --card-foreground: oklch(98% 0.005 160);
+  
+  --popover: oklch(19% 0.015 160);
+  --popover-foreground: oklch(98% 0.005 160);
+  
+  --primary: oklch(65% 0.15 160); /* Vibrant Emerald */
+  --primary-foreground: oklch(15% 0.05 160);
+  
+  --secondary: oklch(23% 0.015 160); /* Elevated tinted neutral */
+  --secondary-foreground: oklch(85% 0.01 160);
+  
+  --muted: oklch(23% 0.015 160);
+  --muted-foreground: oklch(70% 0.01 160);
+  
+  --accent: oklch(28% 0.02 160);
+  --accent-foreground: oklch(98% 0.005 160);
+  
+  --destructive: oklch(60% 0.18 20); /* Vibrant Rose/Red */
+  --destructive-foreground: #fafafa;
+  
+  --border: oklch(27% 0.015 160); /* Subtle tinted separator */
+  --input: oklch(27% 0.015 160);
+  --ring: oklch(65% 0.15 160);
+  
+  --chart-1: oklch(65% 0.15 160); /* Emerald */
+  --chart-2: oklch(65% 0.15 250); /* Blue */
+  --chart-3: oklch(70% 0.15 300); /* Violet */
+  --chart-4: oklch(75% 0.15 65);  /* Amber */
+  --chart-5: oklch(70% 0.12 210); /* Cyan */
+  
+  --glass: oklch(19% 0.015 160 / 0.7);
+  --glass-border: oklch(27% 0.015 160 / 0.5);
+  --glow: oklch(65% 0.15 160 / 0.08);
+  --glow-strong: oklch(65% 0.15 160 / 0.15);
+}
+
+@theme inline {
+  --font-sans: var(--font-sans), system-ui, sans-serif;
+  --font-mono: var(--font-mono), monospace;
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+  
+  --color-glass: var(--glass);
+  --color-glass-border: var(--glass-border);
+  --color-glow: var(--glow);
+  --color-glow-strong: var(--glow-strong);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/30;
+  }
+  
+  /* Custom scrollbar optimized for visual polish */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+  
+  /* Refined Focus States */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  
+  a, button, input, textarea {
+    @apply transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)];
+  }
+}
+
+/* Accessibility: Respect system motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
