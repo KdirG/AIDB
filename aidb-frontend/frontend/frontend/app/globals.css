@@ -127,6 +127,8 @@
   }
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/30;
+    font-feature-settings: "locl" 1, "case" 1;
+    font-language-override: "TRK";
   }
   
   /* Custom scrollbar optimized for visual polish */

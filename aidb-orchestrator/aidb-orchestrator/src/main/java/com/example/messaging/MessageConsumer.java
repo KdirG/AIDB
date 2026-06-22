@@ -5,6 +5,7 @@ import com.example.database.entity.QueryHistory;
 import com.example.database.repository.QueryHistoryRepository;
 import com.example.core.command.SqlQueryCommand;
 import com.example.service.QueryService;
+import com.example.service.ProfilerService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +23,10 @@ public class MessageConsumer implements MessageListener {
     private QueryHistoryRepository historyRepository;
 
     @Autowired
-    private QueryService queryService; // Yeni eklenen servis
+    private QueryService queryService; 
+
+    @Autowired
+    private ProfilerService profilerService;
 
     @Override
     public void onMessage(Message message, byte[] pattern) {
@@ -36,6 +40,16 @@ public class MessageConsumer implements MessageListener {
 
             if (requestId == null || requestId.isEmpty()) return;
 
+            // ✨ ÖNCELİKLİ LOGLAMA: Başarılı AI Sorgusunu En Tepeye Yaz ✨
+            if ("SUCCESS".equals(status)) {
+                String generatedSql = rootNode.path("generatedSql").asText();
+                long execTime = rootNode.path("executionTime").asLong(0);
+                if (generatedSql != null && !generatedSql.isEmpty()) {
+                    profilerService.addLog("AI_QUERY", execTime, generatedSql);
+                    System.out.println("[PROFILER] AI Sorgusu Kaydedildi: " + generatedSql);
+                }
+            }
+
             // 1. DURUM: ONAY BEKLEYEN SORGULARI YAKALA
             if ("AWAITING_APPROVAL".equals(status)) {
                 System.out.println("[Java Consumer] Riskli sorgu yakalandı, onay bekleniyor: " + requestId);
@@ -43,30 +57,65 @@ public class MessageConsumer implements MessageListener {
                 // Sorguyu QueryService'e "Askıya Alınmışlar" olarak kaydet (İleride 'confirm' için lazım)
                 SqlQueryCommand pendingCmd = new SqlQueryCommand();
                 pendingCmd.setRequestId(requestId);
-                pendingCmd.setRawPrompt(rootNode.path("rawPrompt").asText());
+                String actualPrompt = rootNode.path("rawPrompt").asText();
+                pendingCmd.setRawPrompt(actualPrompt);
                 pendingCmd.setGeneratedSql(rootNode.path("generatedSql").asText());
                 
+                // Bağlantı bilgilerini de koruyalım
+                pendingCmd.setConnectionUrl(rootNode.path("connectionUrl").asText());
+                pendingCmd.setTargetDbType(rootNode.path("targetDbType").asText());
+                pendingCmd.setDbId(rootNode.path("dbId").isNull() ? null : rootNode.path("dbId").asLong());
+                pendingCmd.setAllowDdl(rootNode.path("allowDdl").asBoolean(false));
+                
                 queryService.holdForApproval(requestId, pendingCmd);
-            }
 
-            // 2. DURUM: BAŞARILI SORGULARI VE İNFAZLARI KAYDET
-            // Hem normal QUERY hem de EXECUTE_CONFIRMED başarılıysa kaydet
-            if ("SUCCESS".equals(status) && ("QUERY".equals(type) || "EXECUTE_CONFIRMED".equals(type))) {
+                // ✨ YENİ: Kalıcı olması için Veritabanına da "Bekleyen" olarak kaydet
                 try {
                     QueryHistory history = new QueryHistory();
                     history.setRequestId(requestId);
-                    history.setAnswer(rootNode.path("answer").asText());
+                    history.setAnswer("[PENDING] " + rootNode.path("answer").asText());
                     history.setGeneratedSql(rootNode.path("generatedSql").asText());
-                    history.setChartData(rootNode.path("chart").asText());
+                    history.setUserPrompt(actualPrompt != null && !actualPrompt.isEmpty() ? actualPrompt : "Onay Bekleyen İşlem");
                     
-                    String actualPrompt = rootNode.path("rawPrompt").asText();
-                    history.setUserPrompt(actualPrompt != null && !actualPrompt.isEmpty() ? actualPrompt : "İsimsiz Sorgu");
-                    
-                    history.setCreatedAt(LocalDateTime.now());
+                    // JSON olarak connection detaylarını chartData içine sakla (Meta veri olarak)
+                    String metaJson = String.format("{\"type\":\"PENDING_META\",\"connectionUrl\":\"%s\",\"targetDbType\":\"%s\",\"dbId\":%s,\"allowDdl\":%b}", 
+                        rootNode.path("connectionUrl").asText().replace("\"", "\\\"").replace("\\", "\\\\"),
+                        rootNode.path("targetDbType").asText(),
+                        rootNode.path("dbId").isNull() ? "null" : rootNode.path("dbId").asLong(),
+                        rootNode.path("allowDdl").asBoolean(false));
+                    history.setChartData(metaJson);
+                    history.setCreatedAt(java.time.LocalDateTime.now());
                     historyRepository.save(history);
-                    System.out.println("[Java History] İşlem başarıyla kaydedildi: " + actualPrompt);
+                    System.out.println("[Java History] İşlem bekleme listesine (PENDING) kaydedildi.");
                 } catch (Exception dbEx) {
-                    System.err.println("[History Kayıt Hatası]: " + dbEx.getMessage());
+                    System.err.println("[History PENDING Kayıt Hatası]: " + dbEx.getMessage());
+                }
+            }
+
+            // 2. DURUM: BAŞARILI SORGULARI VE İNFAZLARI KAYDET
+            if ("SUCCESS".equals(status)) {
+                String generatedSql = rootNode.path("generatedSql").asText();
+                long execTime = rootNode.path("executionTime").asLong(0);
+                
+                System.out.println("[PROFILER-DEBUG] Başarılı mesaj alındı. Tip: " + type + ", SQL Mevcut mu: " + (generatedSql != null && !generatedSql.isEmpty()));
+
+                if ("QUERY".equals(type) || "EXECUTE_CONFIRMED".equals(type)) {
+                    try {
+                        QueryHistory history = new QueryHistory();
+                        history.setRequestId(requestId);
+                        history.setAnswer(rootNode.path("answer").asText());
+                        history.setGeneratedSql(generatedSql);
+                        history.setChartData(rootNode.path("chart").asText());
+                        
+                        String actualPrompt = rootNode.path("rawPrompt").asText();
+                        history.setUserPrompt(actualPrompt != null && !actualPrompt.isEmpty() ? actualPrompt : "İsimsiz Sorgu");
+                        
+                        history.setCreatedAt(LocalDateTime.now());
+                        historyRepository.save(history);
+                        System.out.println("[Java History] İşlem başarıyla kaydedildi: " + actualPrompt);
+                    } catch (Exception dbEx) {
+                        System.err.println("[History Kayıt Hatası]: " + dbEx.getMessage());
+                    }
                 }
             }
             System.out.println("DEBUG SSE SEND: " + jsonResponse);

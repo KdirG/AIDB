@@ -7,10 +7,19 @@ public class ConnectionCommand extends BaseCommand {
     private String username;
     private String password;
 
+    private Long dbId;
+    private String connectionUrl;
+
     public ConnectionCommand() {
         super();
         this.type = "CONNECT"; // BaseCommand'daki type alanını set eder
     }
+
+    public Long getDbId() { return dbId; }
+    public void setDbId(Long dbId) { this.dbId = dbId; }
+
+    public String getConnectionUrl() { return connectionUrl; }
+    public void setConnectionUrl(String connectionUrl) { this.connectionUrl = connectionUrl; }
 
     // MANUEL GETTER VE SETTERLAR (IDE Hata Veremez)
     public String getDatabaseName() { return databaseName; }

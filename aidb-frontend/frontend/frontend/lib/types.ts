@@ -13,6 +13,9 @@ export interface ChatMessage {
   chart?: any           // Python'dan gelen Plotly JSON objesi/stringi
   chartCode?: string    // Yedek grafik kodu alanı
   isFailover?: boolean  // Smart -> Quick geçiş bilgisini taşır
+  executionTime?: number // Sorgu çalışma süresi (ms)
+  rowCount?: number      // Taranan/Dönen satır sayısı
+  showChart?: boolean    // Grafik gösterim durumu
 }
 
 /**
@@ -38,11 +41,14 @@ export interface ApiResponse {
  */
 export interface QueryHistoryItem {
   id: string
+  requestId: string
   userPrompt: string
   answer: string
   generatedSql: string
   chartData?: any
   createdAt: string | Date
+  executionTime?: number
+  rowCount?: number
 }
 
 /**

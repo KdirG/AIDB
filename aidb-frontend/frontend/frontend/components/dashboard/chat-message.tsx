@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { User, Bot, AlertCircle, Loader2 } from 'lucide-react'
+import { User, Bot, AlertCircle, Loader2, ShieldAlert, AlertTriangle } from 'lucide-react'
 import type { ChatMessage } from '@/lib/types'
 import { ResultCard } from './result-card'
 import { cn } from '@/lib/utils'
@@ -19,10 +19,20 @@ const Plot = dynamic(() => import('react-plotly.js'), {
 interface ChatMessageProps {
   message: ChatMessage
   onGenerateChart?: () => void
+  onRestoreAction?: (prompt: string) => void
 }
 
-export function ChatMessageBubble({ message, onGenerateChart }: ChatMessageProps) {
+export function ChatMessageBubble({ message, onGenerateChart, onRestoreAction }: ChatMessageProps) {
   const isUser = message.role === 'user'
+
+  const isUserSystemAction = isUser && (
+    message.content.startsWith('[SYSTEM_ARCHIVE]') || 
+    message.content.startsWith('[SYSTEM_RESTORE]') ||
+    message.content === 'Tüm Tablo Geçmişini Görüntüleme İsteği (System Archive)' ||
+    message.content === 'Geçmiş Versiyona Dönüş İsteği (System Restore)'
+  );
+
+  if (isUserSystemAction) return null;
 
   const renderChart = () => {
     if (!message.showChart) return null;
@@ -69,10 +79,27 @@ export function ChatMessageBubble({ message, onGenerateChart }: ChatMessageProps
     } catch { return null }
   }
 
+  const isWarningMessage = !isUser && message.content.includes('⚠️');
+  const isErrorMessage = !isUser && (
+    message.content.toLowerCase().includes('yetki') || 
+    message.content.toLowerCase().includes('reddedildi') || 
+    message.content.toLowerCase().includes('hata:') ||
+    message.content.toLowerCase().includes('error:')
+  );
+
   return (
     <div className={cn('flex gap-4 w-full group animate-in slide-in-from-bottom-2 duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]', isUser ? 'flex-row-reverse' : 'flex-row')}>
-      <div className={cn('flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-1 outline-none', isUser ? 'bg-secondary text-foreground' : 'bg-primary text-primary-foreground')}>
-        {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+      <div className={cn(
+          'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center mt-1 outline-none shadow-sm border border-border/50', 
+          isUser 
+            ? 'bg-secondary text-foreground' 
+            : isErrorMessage
+              ? 'bg-red-500/10 text-red-500 border-red-500/20'
+              : isWarningMessage
+                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                : 'bg-primary text-primary-foreground'
+        )}>
+        {isUser ? <User className="w-5 h-5" /> : isErrorMessage ? <ShieldAlert className="w-5 h-5" /> : isWarningMessage ? <AlertTriangle className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
       </div>
 
       <div className={cn('flex-1 max-w-[85%] space-y-2', isUser ? 'items-end text-right' : 'items-start text-left')}>
@@ -85,10 +112,14 @@ export function ChatMessageBubble({ message, onGenerateChart }: ChatMessageProps
         </div>
 
         <div className={cn(
-            'px-5 py-3.5 rounded-2xl shadow-sm text-[15px] leading-relaxed relative w-fit transition-all duration-300 hover:-translate-y-[2px] hover:shadow-md cursor-default',
+            'px-5 py-4 rounded-2xl shadow-sm text-[15px] leading-relaxed relative w-fit transition-all duration-300 hover:-translate-y-[2px] cursor-default',
             isUser 
               ? 'bg-secondary/60 ml-auto border border-border border-b-0 border-r-0 rounded-tr-sm text-foreground' 
-              : 'bg-card border border-border rounded-tl-sm text-foreground'
+              : isErrorMessage
+                ? 'bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-tl-sm shadow-[0_0_10px_rgba(239,68,68,0.1)]'
+                : isWarningMessage
+                  ? 'bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-tl-sm shadow-[0_0_10px_rgba(245,158,11,0.1)]'
+                  : 'bg-card border border-border rounded-tl-sm text-foreground'
           )}>
           {message.isLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -103,16 +134,29 @@ export function ChatMessageBubble({ message, onGenerateChart }: ChatMessageProps
                   <span>Doğrudan SQL Yürütme Modu</span>
                 </div>
               )}
-              <div className="whitespace-pre-wrap">{message.content}</div>
+              <div className="whitespace-pre-wrap">
+                {message.content.startsWith('[SYSTEM_ARCHIVE]') 
+                  ? "Sistem Arşiv Geçmişi (Temporal History) yükleniyor..." 
+                  : message.content.startsWith('[SYSTEM_RESTORE]')
+                    ? "Sistem Geri Yükleme Protokolü (Native Restore) hazırlanıyor..."
+                    : message.content}
+              </div>
             </>
           )}
         </div>
 
         {!message.isLoading && renderChart()}
 
-        {!isUser && message.sql && message.data && message.data.length > 0 && !message.isLoading && (
-          <div className="mt-4">
-             <ResultCard sql={message.sql} data={message.data} onGenerateChart={onGenerateChart} />
+        {!message.isLoading && message.sql && !message.isAwaitingApproval && (
+          <div className="mt-4 w-full">
+            <ResultCard 
+              sql={message.sql} 
+              data={message.data || []} 
+              executionTime={message.executionTime} 
+              rowCount={message.rowCount} 
+              onGenerateChart={onGenerateChart}
+              onRestoreAction={onRestoreAction}
+            />
           </div>
         )}
       </div>

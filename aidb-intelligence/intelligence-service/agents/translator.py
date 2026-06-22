@@ -29,6 +29,12 @@ class TranslatorAgent: # İsmini mimariye uygun güncelledik
         outputs = self.tr_en_model.generate(**inputs)
         translated = self.tr_en_tokenizer.decode(outputs[0], skip_special_tokens=True)
         
+        # Helsinki-NLP modeli bilinmeyen isimlerde (Örn: Mertcan) bazen HTML tag'leri (örn: <a href="400">) üretebilir.
+        # Bu tarz halüsinasyonları temizliyoruz.
+        translated = re.sub(r'<[^>]+>', '', translated)
+        translated = re.sub(r'\d+">', '', translated)
+        translated = translated.replace('">', '')
+        
         hint = self._extract_table_hint(raw_text)
         final_prompt = translated + hint
         

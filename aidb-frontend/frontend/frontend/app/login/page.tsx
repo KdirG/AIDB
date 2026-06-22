@@ -56,8 +56,8 @@ export default function LoginPage() {
           <div className="relative w-20 h-20 mb-6 drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
             <Image src="/logo.png" alt="AIDB Logo" fill className="object-contain" priority />
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">
-            AIDB <span className="text-primary">Intelligence</span>
+          <h1 className="text-3xl font-black tracking-tight text-foreground leading-tight">
+            AI Assisted <span className="text-primary">Database Manager</span>
           </h1>
           <p className="text-secondary-foreground text-sm mt-2">Veritabanı asistanınıza giriş yapın</p>
         </div>

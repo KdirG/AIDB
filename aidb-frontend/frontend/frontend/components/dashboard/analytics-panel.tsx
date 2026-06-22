@@ -5,24 +5,26 @@ import { useState } from 'react'
 import { X, BarChart3, TrendingUp, Clock, Database, Activity, PieChart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QueryHistoryItem } from '@/lib/types'
+import { useI18n } from "@/lib/i18n-context"
 
 interface AnalyticsPanelProps {
   isOpen: boolean
   onClose: () => void
   queryHistory: QueryHistoryItem[]
   totalQueries: number
-  avgQueryTime: number | null
-  totalRowsScanned: number
+  avgQueryTime?: number | null
+  totalRowsScanned?: number
 }
 
 export function AnalyticsPanel({
   isOpen,
   onClose,
   queryHistory,
-  totalQueries,
-  avgQueryTime,
-  totalRowsScanned,
+  totalQueries = 0,
+  avgQueryTime = 0,
+  totalRowsScanned = 0,
 }: AnalyticsPanelProps) {
+  const { t } = useI18n()
   const [activeView, setActiveView] = useState<'overview' | 'performance' | 'history'>('overview')
 
   if (!isOpen) return null
@@ -32,10 +34,10 @@ export function AnalyticsPanel({
   const successRate = totalQueries > 0 ? Math.round((successfulQueries / totalQueries) * 100) : 0
   
   const getPerformanceData = () => {
-    if (!avgQueryTime) return { label: 'Yok', color: 'text-muted-foreground' }
-    if (avgQueryTime < 300) return { label: 'Mükemmel', color: 'text-primary' }
-    if (avgQueryTime < 700) return { label: 'İyi', color: 'text-yellow-500' }
-    return { label: 'Yavaş', color: 'text-destructive' }
+    if (!avgQueryTime) return { label: t.analytics.perfLabels.none, color: 'text-muted-foreground' }
+    if (avgQueryTime < 300) return { label: t.analytics.perfLabels.excellent, color: 'text-primary' }
+    if (avgQueryTime < 700) return { label: t.analytics.perfLabels.good, color: 'text-yellow-500' }
+    return { label: t.analytics.perfLabels.slow, color: 'text-destructive' }
   }
 
   const perf = getPerformanceData()
@@ -55,8 +57,8 @@ export function AnalyticsPanel({
               <BarChart3 className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground tracking-tight">Analitik Paneli</h2>
-              <p className="text-sm text-muted-foreground">Performans ve İş İçgörüleri</p>
+              <h2 className="text-lg font-semibold text-foreground tracking-tight">{t.analytics.title}</h2>
+              <p className="text-sm text-muted-foreground">{t.analytics.subtitle}</p>
             </div>
           </div>
           <button
@@ -69,9 +71,9 @@ export function AnalyticsPanel({
 
         <div className="flex gap-1 p-2 border-b border-border bg-secondary/20">
           {[
-            { id: 'overview', label: 'Genel Bakış', icon: PieChart },
-            { id: 'performance', label: 'Performans', icon: Activity },
-            { id: 'history', label: 'Sorgu Geçmişi', icon: Clock },
+            { id: 'overview', label: t.analytics.tabs.overview, icon: PieChart },
+            { id: 'performance', label: t.analytics.tabs.performance, icon: Activity },
+            { id: 'history', label: t.analytics.tabs.history, icon: Clock },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -96,29 +98,29 @@ export function AnalyticsPanel({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard
                   icon={Database}
-                  label="TOPLAM SORGU"
+                  label={t.analytics.totalQueries}
                   value={totalQueries.toString()}
-                  trend={`%${successRate} Başarılı`}
+                  trend={`%${successRate} ${t.analytics.successRate}`}
                 />
                 <StatCard
                   icon={Clock}
-                  label="ORTALAMA SÜRE"
-                  value={avgQueryTime ? `${avgQueryTime} ms` : 'Yok'}
+                  label={t.analytics.avgTime}
+                  value={avgQueryTime ? `${avgQueryTime} ${t.analytics.ms}` : t.analytics.perfLabels.none}
                   trend={perf.label}
                   trendColor={perf.color}
                 />
                 <StatCard
                   icon={TrendingUp}
-                  label="TARANAN SATIR"
+                  label={t.analytics.rowsScanned}
                   value={totalRowsScanned.toLocaleString()}
-                  trend="Satır"
+                  trend={t.analytics.rows}
                 />
               </div>
 
               <div className="p-6 rounded-xl bg-secondary/30 border border-border text-center">
-                <h3 className="text-sm font-bold text-foreground mb-2">Sistem Kullanımı</h3>
+                <h3 className="text-sm font-bold text-foreground mb-2">{t.analytics.systemUsage}</h3>
                 <p className="text-xs text-muted-foreground">
-                  Sisteminiz aktif olarak sorguları analiz ediyor. Mevcut başarı oranı
+                  {t.analytics.usageText}
                   <span className="text-primary font-bold"> %{successRate}</span>.
                 </p>
               </div>
@@ -130,19 +132,19 @@ export function AnalyticsPanel({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-5 rounded-xl bg-secondary/30 border border-border/50 shadow-sm">
                   <h3 className="text-sm font-bold text-foreground mb-6 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-primary" /> Doğruluk Metrikleri
+                    <Activity className="w-4 h-4 text-primary" /> {t.analytics.accuracyMetrics}
                   </h3>
-                  <PerformanceBar label="Mantıksal Başarı Oranı" percentage={successRate} color="bg-gradient-to-r from-emerald-500 to-primary" />
-                  <PerformanceBar label="Şema Uyumu" percentage={98} color="bg-gradient-to-r from-blue-500 to-cyan-400" />
-                  <PerformanceBar label="Refiner Kullanımı" percentage={75} color="bg-gradient-to-r from-indigo-500 to-purple-400" />
+                  <PerformanceBar label={t.analytics.logicSuccess} percentage={successRate} color="bg-gradient-to-r from-emerald-500 to-primary" />
+                  <PerformanceBar label={t.analytics.schemaMatch} percentage={98} color="bg-gradient-to-r from-blue-500 to-cyan-400" />
+                  <PerformanceBar label={t.analytics.refinerUsage} percentage={75} color="bg-gradient-to-r from-indigo-500 to-purple-400" />
                 </div>
                 <div className="p-5 rounded-xl bg-secondary/30 border border-border/50 shadow-sm">
                   <h3 className="text-sm font-bold text-foreground mb-6 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-primary" /> Optimizasyon Etkisi
+                    <TrendingUp className="w-4 h-4 text-primary" /> {t.analytics.optEffect}
                   </h3>
-                  <PerformanceBar label="Ortalama Yanıt Verimliliği" percentage={94} color="bg-gradient-to-r from-emerald-500 to-primary" />
-                  <PerformanceBar label="Veritabanı Yük Etkisi" percentage={12} color="bg-secondary text-foreground" />
-                  <PerformanceBar label="Gecikme Skoru" percentage={88} color="bg-gradient-to-r from-amber-500 to-orange-400" />
+                  <PerformanceBar label={t.analytics.responseEff} percentage={94} color="bg-gradient-to-r from-emerald-500 to-primary" />
+                  <PerformanceBar label={t.analytics.dbLoad} percentage={12} color="bg-secondary text-foreground" />
+                  <PerformanceBar label={t.analytics.latencyScore} percentage={88} color="bg-gradient-to-r from-amber-500 to-orange-400" />
                 </div>
               </div>
             </div>
@@ -152,7 +154,7 @@ export function AnalyticsPanel({
             <div className="space-y-3">
               {queryHistory.length === 0 ? (
                 <div className="text-center text-muted-foreground py-16">
-                  Kayıt bulunamadı
+                  {t.analytics.noHistory}
                 </div>
               ) : (
                 queryHistory.map((item) => (

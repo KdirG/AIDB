@@ -9,4 +9,6 @@ import java.util.List;
 public interface QueryHistoryRepository extends JpaRepository<QueryHistory, Long> {
     // En son yapılan sorguyu en üstte getirmek için
     List<QueryHistory> findAllByOrderByCreatedAtDesc();
+
+    QueryHistory findByRequestId(String requestId);
 }

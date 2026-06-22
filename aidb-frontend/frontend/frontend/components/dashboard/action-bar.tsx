@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, BarChart3, FileSpreadsheet, Loader2 } from 'lucide-react'
+import { Download, BarChart3, FileSpreadsheet, Loader2, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import * as XLSX from 'xlsx'
 
@@ -9,9 +9,10 @@ interface ActionBarProps {
   data: Record<string, unknown>[]
   sql: string
   onGenerateChart?: () => void
+  onViewHistory?: () => void
 }
 
-export function ActionBar({ data, sql, onGenerateChart }: ActionBarProps) {
+export function ActionBar({ data, sql, onGenerateChart, onViewHistory }: ActionBarProps) {
   const [isExporting, setIsExporting] = useState(false)
 
   const handleExportExcel = async () => {
@@ -75,6 +76,16 @@ export function ActionBar({ data, sql, onGenerateChart }: ActionBarProps) {
         Generate Chart
       </button>
 
+      {/* Tablo Geçmişi (Tüm Tablo İçin) */}
+      {onViewHistory && (
+        <button
+          onClick={onViewHistory}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold text-indigo-500 hover:text-indigo-600 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg transition-all"
+        >
+          <History className="w-4 h-4" />
+          VIEW TABLE HISTORY
+        </button>
+      )}
       
     </div>
   )
